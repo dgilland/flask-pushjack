@@ -12,13 +12,14 @@ from .__meta__ import (
     __license__
 )
 
+from functools import wraps
+
 from flask import current_app
 from pushjack import (
     APNSClient,
+    APNSSandboxClient,
     GCMClient,
-    create_apns_sandbox_config,
-    create_apns_config,
-    create_gcm_config
+    apns
 )
 
 
@@ -26,6 +27,15 @@ __all__ = (
     'FlaskAPNS',
     'FlaskGCM',
 )
+
+
+def enable(func):
+    """Decorator that only executes class method if `self.enabled` is True."""
+    @wraps(func)
+    def decorated(self, *args, **kargs):
+        if self.enabled:
+            return func(self, *args, **kargs)
+    return decorated
 
 
 class FlaskPushjack(object):
@@ -40,23 +50,15 @@ class FlaskPushjack(object):
         if app is not None:  # pragma: no cover
             self.init_app(app)
 
-    def init_app(self, app):
+    def init_app(self, app):  # pragma: no cover
         """Initialize extension with application configuration."""
-        self.init_config(app)
+        raise NotImplementedError
 
-        # pylint: disable=not-callable
-        client = self.client_class(app.config)
-
-        if not hasattr(app, 'extensions'):  # pragma: no cover
-            app.extensions = {}
-
+    def store_client(self, app, client):
+        """Store reference to client on app.extensions."""
         app.extensions[self._extension_name] = {
             'client': client
         }
-
-    def init_config(self, app):  # pragma: no cover
-        """Initialize configuration specifically for client."""
-        raise NotImplementedError
 
     @property
     def client(self):
@@ -68,48 +70,81 @@ class FlaskPushjack(object):
         """Return whether client is enabled."""
         return current_app.config.get(self._config_prefix + 'ENABLED')
 
-    def send(self, registration_id, alert, **options):
-        """Send push notification to single recipient."""
-        if self.enabled:
-            return self.client.send(registration_id, alert, **options)
-
-    def send_bulk(self, registration_ids, alert, **options):
-        """Send push notification to multiple recpients."""
-        if self.enabled:
-            return self.client.send_bulk(registration_ids, alert, **options)
+    @enable
+    def send(self, ids, message, **options):
+        """Send push notification to single or multiple recipients."""
+        return self.client.send(ids, message, **options)
 
 
 class FlaskAPNS(FlaskPushjack):
     """Flask extension for APNS client."""
     client_class = APNSClient
+    client_sandbox_class = APNSSandboxClient
+
     _config_prefix = 'APNS_'
     _extension_name = 'pushjack.apns'
 
-    def init_config(self, app):
-        """Initialize client configuration."""
-        app.config.setdefault('APNS_ENABLED', True)
-        app.config.setdefault('APNS_SANDBOX', False)
+    def __init__(self, app=None):
+        self.app = app
 
-        if app.config['APNS_SANDBOX']:
-            create_config = create_apns_sandbox_config
-        else:
-            create_config = create_apns_config
+        if app is not None:  # pragma: no cover
+            self.init_app(app)
 
-        app.config.update(create_config(app.config))
+    def init_app(self, app):
+        """Initialize extension with application configuration."""
+        config = app.config
+        config.setdefault('APNS_ENABLED', True)
+        config.setdefault('APNS_SANDBOX', False)
+        config.setdefault('APNS_DEFAULT_ERROR_TIMEOUT',
+                          apns.APNS_DEFAULT_ERROR_TIMEOUT)
+        config.setdefault('APNS_DEFAULT_EXPIRATION_OFFSET',
+                          apns.APNS_DEFAULT_EXPIRATION_OFFSET)
+        config.setdefault('APNS_DEFAULT_BATCH_SIZE',
+                          apns.APNS_DEFAULT_BATCH_SIZE)
 
+        client_class = (self.client_class if not config['APNS_SANDBOX']
+                        else self.client_sandbox_class)
+
+        client = client_class(
+            config['APNS_CERTIFICATE'],
+            default_error_timeout=config['APNS_DEFAULT_ERROR_TIMEOUT'],
+            default_expiration_offset=config['APNS_DEFAULT_EXPIRATION_OFFSET'],
+            default_batch_size=config['APNS_DEFAULT_BATCH_SIZE'])
+
+        self.store_client(app, client)
+
+        if hasattr(app, 'teardown_appcontext'):
+            # 0.9 and later
+            teardown = app.teardown_appcontext
+        elif hasattr(app, 'teardown_request'):  # pragma: no cover
+            # 0.7 to 0.8
+            teardown = app.teardown_request
+        else:  # pragma: no cover
+            # Older Flask versions
+            teardown = app.after_request
+
+        @teardown
+        def close_client(response_or_exc):
+            self.client.close()
+            return response_or_exc
+
+    @enable
     def get_expired_tokens(self):
         """Return expired tokens."""
-        if self.enabled:
-            return self.client.get_expired_tokens()
+        return self.client.get_expired_tokens()
 
 
 class FlaskGCM(FlaskPushjack):
     """Flask extension for GCM client."""
     client_class = GCMClient
+
     _config_prefix = 'GCM_'
     _extension_name = 'pushjack.gcm'
 
-    def init_config(self, app):
-        """Initialize client configuration."""
+    def init_app(self, app):
+        """Initialize extension with application configuration."""
         app.config.setdefault('GCM_ENABLED', True)
-        app.config.update(create_gcm_config(app.config))
+
+        client = self.client_class(app.config['GCM_API_KEY'])
+
+        self.store_client(app, client)

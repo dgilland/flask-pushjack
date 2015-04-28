@@ -19,7 +19,7 @@ Links
 Quickstart
 ==========
 
-Whether using ``APNS`` or ``GCM``, Flask-Pushjack provides a common API interface for each.
+Whether using ``APNS`` or ``GCM``, Flask-Pushjack provides an API client for each.
 
 
 APNS
@@ -41,14 +41,25 @@ APNS
     client.init_app(app)
 
     with app.app_context():
+        token = '<device token>'
+
         # Send to single device.
-        client.send(token, alert, **options)
+        res = client.send(token, alert, **options)
+
+        # List of all tokens sent.
+        res.tokens
+
+        # List of any subclassed APNSServerError objects.
+        res.errors
+
+        # Dict mapping token => APNSServerError.
+        res.token_errors
 
         # Send to multiple devices.
-        client.send_bulk(tokens, alert, **options)
+        client.send([token], alert, **options)
 
         # Get expired tokens.
-        expired = client.get_expired_tokens()
+        expired_tokens = client.get_expired_tokens()
 
 
 GCM
@@ -60,7 +71,7 @@ GCM
     from flask_pushjack import FlaskGCM
 
     config = {
-        'GCM_API_KEY': '<api key>'
+        'GCM_API_KEY': '<api-key>'
     }
 
     app = Flask(__name__)
@@ -70,11 +81,41 @@ GCM
     client.init_app(app)
 
     with app.app_context():
+        token = '<device token>'
+
         # Send to single device.
-        client.send(token, alert, **options)
+        res = client.send(token, alert, **options)
+
+        # List of requests.Response objects from GCM Server.
+        res.responses
+
+        # List of messages sent.
+        res.messages
+
+        # List of registration ids sent.
+        res.registration_ids
+
+        # List of server response data from GCM.
+        res.data
+
+        # List of successful registration ids.
+        res.successes
+
+        # List of failed registration ids.
+        res.failures
+
+        # List of exceptions.
+        res.errors
+
+        # List of canonical ids (registration ids that have changed).
+        res.canonical_ids
+
 
         # Send to multiple devices.
-        client.send_bulk(tokens, alert, **options)
+        client.send([token], alert, **options)
+
+
+For more details, please see the documentation for pushjack at http://pushjack.readthedocs.org.
 
 
 Configuration
@@ -84,16 +125,12 @@ APNS
 ++++
 
 ==================================  ===
-``APNS_ENABLED``                    Whether to enable sending. Default ``True``
-``APNS_SANDBOX``                    Whether to use default sandbox settings. Default: ``False``
 ``APNS_CERTIFICATE``                File path to certificate PEM file (**must be set**). Default: ``None``
-``APNS_HOST``                       APNS push server host. Default: ``'gateway.push.apple.com'``
-``APNS_PORT``                       APNS push server port. Default: ``2195``
-``APNS_FEEDBACK_HOST``              APNS feedback server host. Default: ``'feedback.push.apple.com'``
-``APNS_FEEDBACK_PORT``              APNS feedback server port. Default: ``2196``
-``APNS_ERROR_TIMEOUT``              Socket error timeout. Default: ``0.5``
+``APNS_ENABLED``                    Whether to enable sending. Default ``True``
+``APNS_SANDBOX``                    Whether to use sandbox server. Default: ``False``
+``APNS_DEFAULT_ERROR_TIMEOUT``      Timeout when polling APNS for error after sending. Default: ``10``
 ``APNS_DEFAULT_EXPIRATION_OFFSET``  Message expiration (secs) from now. Default: ``2592000`` (1 month)
-``APNS_MAX_NOTIFICATION_SIZE``      Maximum length of message. Default: ``2048``
+``APNS_DEFAULT_BATCH_SIZE``         Number of notifications to group together when sending.
 ==================================  ===
 
 
@@ -101,10 +138,8 @@ GCM
 +++
 
 ======================  ===
-``GCM_ENABLED``         Whether to enable sending. Default ``True``
 ``GCM_API_KEY``         API key (**must be set**). Default: ``None``
-``GCM_URL``             GCM send URL. Default: ``'https://android.googleapis.com/gcm/send'``
-``GCM_MAX_RECIPIENTS``  Max recipients per bulk send. Default: ``1000``
+``GCM_ENABLED``         Whether to enable sending. Default ``True``
 ======================  ===
 
 

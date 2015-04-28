@@ -9,7 +9,7 @@ __url__ = 'https://github.com/dgilland/flask-pushjack'
 
 __version__ = '0.1.1'
 
-__install_requires__ = ['pushjack>=0.1.0,<0.3.0', 'flask']
+__install_requires__ = ['pushjack>=1.0.0', 'flask']
 
 __author__ = 'Derrick Gilland'
 __email__ = 'dgilland@gmail.com'
