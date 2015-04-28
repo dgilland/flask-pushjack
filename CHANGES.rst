@@ -4,6 +4,9 @@ Changelog
 =========
 
 
+v1.0.0 (2015-04-28)
+-------------------
+
 - Add ``APNS_DEFAULT_BATCH_SIZE=100`` config option.
 - Pin ``pushjack`` dependency version to ``>=1.0.0``. (**breaking change**)
 - Remove ``send_bulk`` method as bulk sending is now accomplished by the ``send`` function. (**breaking change**)

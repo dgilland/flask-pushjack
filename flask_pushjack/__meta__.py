@@ -7,7 +7,7 @@ __summary__ = ('Flask extension for push notifications on '
                'APNS (iOS) and GCM (Android).')
 __url__ = 'https://github.com/dgilland/flask-pushjack'
 
-__version__ = '0.1.1'
+__version__ = '1.0.0'
 
 __install_requires__ = ['pushjack>=1.0.0', 'flask']
 
