@@ -40,9 +40,9 @@ There are two main development branches: ``master`` and ``develop``. ``master`` 
 Continuous Integration
 ======================
 
-Integration testing is provided by `Travis-CI`_ at https://travis-ci.org/dgilland/pydash.
+Integration testing is provided by `Travis-CI`_ at https://travis-ci.org/dgilland/flask-pushjack.
 
-Test coverage reporting is provided by `Coveralls`_ at https://coveralls.io/r/dgilland/pydash.
+Test coverage reporting is provided by `Coveralls`_ at https://coveralls.io/r/dgilland/flask-pushjack.
 
 
 Project CLI
