@@ -4,7 +4,7 @@ Flask-Pushjack
 
 |version| |travis| |coveralls| |license|
 
-Flask extension for push notifications on APNS (iOS) and GCM (Android).
+Flask Extension to push notifications on APNS (iOS) and GCM (Android).
 
 
 Links
