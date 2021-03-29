@@ -6,6 +6,8 @@ Flask-Pushjack
 
 Flask extension for push notifications on APNS (iOS) and GCM (Android).
 
+*****WARNING: PROJECT DEPRECATED AND NO LONGER MAINTAINED*****
+
 
 Links
 =====
